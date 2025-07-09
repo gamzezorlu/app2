@@ -1,10 +1,11 @@
-mport streamlit as st
+# Genel istatistikler
+                st.header("📈 Genel İstatistikler")import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
+from datetime import datetime
+import io
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -22,31 +23,127 @@ st.markdown("""
     .main-header {
         font-size: 2.5rem;
         font-weight: bold;
-        color: #1f77b4;
+        color: #FF6B35;
         text-align: center;
         margin-bottom: 2rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
     }
+    
+    .stApp {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .main > div {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
     .metric-card {
-        background: linear-gradient(90deg, #ff6b6b, #ee5a24);
-        padding: 1rem;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #FF6B35, #F7931E);
+        padding: 1.5rem;
+        border-radius: 15px;
         color: white;
         text-align: center;
         margin: 0.5rem 0;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        transition: transform 0.3s ease;
     }
+    
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
+    
     .warning-card {
-        background: linear-gradient(90deg, #ffa726, #ff9800);
-        padding: 1rem;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #FFA726, #FF9800);
+        padding: 1.5rem;
+        border-radius: 15px;
         color: white;
         text-align: center;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        transition: transform 0.3s ease;
     }
+    
+    .warning-card:hover {
+        transform: translateY(-5px);
+    }
+    
     .success-card {
-        background: linear-gradient(90deg, #66bb6a, #4caf50);
+        background: linear-gradient(135deg, #66BB6A, #4CAF50);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        transition: transform 0.3s ease;
+    }
+    
+    .success-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .info-card {
+        background: linear-gradient(135deg, #42A5F5, #2196F3);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        transition: transform 0.3s ease;
+    }
+    
+    .info-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .sidebar .stSelectbox label {
+        color: #FF6B35;
+        font-weight: bold;
+    }
+    
+    .sidebar .stSlider label {
+        color: #FF6B35;
+        font-weight: bold;
+    }
+    
+    .stButton > button {
+        background: linear-gradient(135deg, #FF6B35, #F7931E);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        padding: 0.5rem 2rem;
+        font-weight: bold;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    
+    .stDataFrame {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .analysis-section {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        padding: 2rem;
+        border-radius: 15px;
+        margin: 1rem 0;
+        border-left: 5px solid #FF6B35;
+    }
+    
+    .parameter-card {
+        background: linear-gradient(135deg, #667eea, #764ba2);
         padding: 1rem;
         border-radius: 10px;
         color: white;
-        text-align: center;
+        margin: 0.5rem 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -59,10 +156,22 @@ class GasLeakDetector:
     def load_data(self, uploaded_file):
         """Excel dosyasını yükle ve temizle"""
         try:
-            self.df = pd.read_excel(uploaded_file)
+            # Farklı dosya formatlarını destekle
+            if uploaded_file.name.endswith('.xlsx'):
+                self.df = pd.read_excel(uploaded_file, engine='openpyxl')
+            elif uploaded_file.name.endswith('.xls'):
+                self.df = pd.read_excel(uploaded_file, engine='xlrd')
+            else:
+                # CSV olarak da deneyelim
+                self.df = pd.read_csv(uploaded_file)
+            
+            st.success(f"✅ Dosya yüklendi: {uploaded_file.name}")
+            st.info(f"📊 Veri boyutu: {self.df.shape[0]} satır, {self.df.shape[1]} sütun")
+            
             return True
         except Exception as e:
-            st.error(f"Dosya yüklenirken hata: {str(e)}")
+            st.error(f"❌ Dosya yüklenirken hata: {str(e)}")
+            st.info("💡 Lütfen dosyanızın Excel (.xlsx, .xls) formatında olduğundan emin olun.")
             return False
     
     def preprocess_data(self):
@@ -88,7 +197,7 @@ class GasLeakDetector:
         
         return True
     
-    def detect_anomalies(self):
+    def detect_anomalies(self, low_threshold=30, neighbor_threshold=60, drop_threshold=70):
         """Anomali tespiti algoritmaları"""
         if self.df is None:
             return []
@@ -106,7 +215,7 @@ class GasLeakDetector:
             risk_score = 0
             
             # 1. Ani düşüş tespiti
-            sudden_drops = self._detect_sudden_drops(consumption_data)
+            sudden_drops = self._detect_sudden_drops(consumption_data, drop_threshold)
             if sudden_drops['count'] > 0:
                 anomalies.append(f"Ani düşüş: {sudden_drops['count']} kez")
                 risk_score += sudden_drops['count'] * 20
@@ -118,7 +227,7 @@ class GasLeakDetector:
                 risk_score += zero_consumption['count'] * 15
             
             # 3. Düşük tüketim tespiti
-            low_consumption = self._detect_low_consumption(consumption_data)
+            low_consumption = self._detect_low_consumption(consumption_data, low_threshold)
             if low_consumption['suspicious']:
                 anomalies.append(f"Düşük tüketim: Ortalama {low_consumption['avg_consumption']:.1f}")
                 risk_score += 25
@@ -136,7 +245,7 @@ class GasLeakDetector:
                 risk_score += 20
             
             # 6. Komşu tesisatlarla karşılaştırma
-            neighbor_anomaly = self._compare_with_neighbors(bn, tn, consumption_data)
+            neighbor_anomaly = self._compare_with_neighbors(bn, tn, consumption_data, neighbor_threshold)
             if neighbor_anomaly['suspicious']:
                 anomalies.append(f"Komşu anomalisi: {neighbor_anomaly['description']}")
                 risk_score += 35
@@ -166,11 +275,11 @@ class GasLeakDetector:
         
         return suspicious_list
     
-    def _detect_sudden_drops(self, data):
+    def _detect_sudden_drops(self, data, threshold=70):
         """Ani düşüş tespiti"""
         drops = 0
         for i in range(1, len(data)):
-            if data[i-1] > 0 and data[i] < data[i-1] * 0.3:  # %70'den fazla düşüş
+            if data[i-1] > 0 and data[i] < data[i-1] * ((100-threshold)/100):
                 drops += 1
         return {'count': drops}
     
@@ -179,7 +288,7 @@ class GasLeakDetector:
         zero_count = np.sum(data == 0)
         return {'count': zero_count}
     
-    def _detect_low_consumption(self, data):
+    def _detect_low_consumption(self, data, threshold=30):
         """Düşük tüketim tespiti"""
         non_zero_data = data[data > 0]
         if len(non_zero_data) == 0:
@@ -187,8 +296,8 @@ class GasLeakDetector:
         
         avg_consumption = np.mean(non_zero_data)
         
-        # Ortalama tüketim çok düşükse şüpheli
-        if avg_consumption < 50:  # 50 m³'den az
+        # Parametre olarak gelen threshold'u kullan
+        if avg_consumption < threshold:
             return {'suspicious': True, 'avg_consumption': avg_consumption}
         
         return {'suspicious': False, 'avg_consumption': avg_consumption}
@@ -238,7 +347,7 @@ class GasLeakDetector:
         
         return {'suspicious': False, 'description': ''}
     
-    def _compare_with_neighbors(self, bn, tn, data):
+    def _compare_with_neighbors(self, bn, tn, data, threshold=60):
         """Komşu tesisatlarla karşılaştırma"""
         # Aynı binadaki diğer tesisatları bul
         neighbors = self.df[self.df['BN'] == bn]
@@ -268,25 +377,71 @@ class GasLeakDetector:
         current_avg = np.mean(data[data > 0])
         neighbor_avg = np.mean(neighbor_consumptions)
         
-        # Komşulardan %60'dan fazla az tüketim şüpheli
-        if current_avg < neighbor_avg * 0.4:
+        # Parametre olarak gelen threshold'u kullan
+        if current_avg < neighbor_avg * (threshold/100):
             return {'suspicious': True, 'description': f'Komşulardan {((neighbor_avg - current_avg) / neighbor_avg * 100):.0f}% daha az tüketim'}
         
         return {'suspicious': False, 'description': ''}
 
 def main():
-    st.markdown('<h1 class="main-header">🔍 Doğalgaz Kaçak Tespit Sistemi</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🔥 Doğalgaz Tüketim Anomali Tespit Sistemi</h1>', unsafe_allow_html=True)
     
     # Sidebar
-    st.sidebar.header("📊 Kontrol Paneli")
+    st.sidebar.markdown("""
+    <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #FF6B35, #F7931E); border-radius: 10px; margin-bottom: 1rem;">
+        <h2 style="color: white; margin: 0;">🔍 Kontrol Paneli</h2>
+    </div>
+    """, unsafe_allow_html=True)
     
     detector = GasLeakDetector()
     
+    # Sidebar parametreleri
+    st.sidebar.markdown("### 📊 Analiz Parametreleri")
+    
+    # Parametre kartları
+    st.sidebar.markdown("""
+    <div class="parameter-card">
+        <h4>⚙️ Tespit Eşikleri</h4>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    low_consumption_threshold = st.sidebar.slider(
+        "Kış ayı düşük tüketim eşiği (m³/ay)", 
+        min_value=10, 
+        max_value=200, 
+        value=30,
+        help="Bu değerin altındaki tüketimler şüpheli kabul edilir"
+    )
+    
+    neighbor_ratio_threshold = st.sidebar.slider(
+        "Bina ortalamasından düşük olma oranı (%)", 
+        min_value=30, 
+        max_value=90, 
+        value=60,
+        help="Komşulardan bu kadar az tüketim şüpheli kabul edilir"
+    )
+    
+    sudden_drop_threshold = st.sidebar.slider(
+        "Ani düşüş oranı (%)", 
+        min_value=40, 
+        max_value=90, 
+        value=70,
+        help="Bir aydan diğerine bu kadar düşüş şüpheli kabul edilir"
+    )
+    
+    st.sidebar.markdown("### 📋 Tespit Edilen Tarih Sütunları")
+    
     # Dosya yükleme
+    st.sidebar.markdown("""
+    <div class="parameter-card">
+        <h4>📂 Dosya Yükleme</h4>
+    </div>
+    """, unsafe_allow_html=True)
+    
     uploaded_file = st.sidebar.file_uploader(
-        "Excel dosyasını yükleyin",
-        type=['xlsx', 'xls'],
-        help="Doğalgaz tüketim verilerini içeren Excel dosyasını seçin"
+        "Excel veya CSV dosyasını yükleyin",
+        type=['xlsx', 'xls', 'csv'],
+        help="Doğalgaz tüketim verilerini içeren dosyayı seçin"
     )
     
     if uploaded_file is not None:
@@ -297,8 +452,21 @@ def main():
             if detector.preprocess_data():
                 st.sidebar.success("✅ Veri işlendi!")
                 
-                # Genel istatistikler
-                st.header("📈 Genel İstatistikler")
+                # Veri önizleme
+                st.header("👀 Veri Önizleme")
+                
+                if st.checkbox("Veri önizlemesini göster"):
+                    st.write("**İlk 5 satır:**")
+                    st.dataframe(detector.df.head())
+                    
+                    st.write("**Sütun bilgileri:**")
+                    col_info = pd.DataFrame({
+                        'Sütun': detector.df.columns,
+                        'Veri Tipi': detector.df.dtypes,
+                        'Null Değer': detector.df.isnull().sum(),
+                        'Örnek Değer': [str(detector.df[col].iloc[0]) if len(detector.df) > 0 else 'N/A' for col in detector.df.columns]
+                    })
+                    st.dataframe(col_info)
                 
                 col1, col2, col3, col4 = st.columns(4)
                 
@@ -438,22 +606,33 @@ def main():
                             summary_df = pd.DataFrame(summary_data)
                             
                             # Excel dosyası oluştur
-                            from io import BytesIO
-                            output = BytesIO()
+                            output = io.BytesIO()
                             
-                            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                                summary_df.to_excel(writer, sheet_name='Özet', index=False)
-                                report_data.to_excel(writer, sheet_name='Şüpheli_Tesisatlar', index=False)
-                                building_analysis.to_excel(writer, sheet_name='Bina_Analizi', index=True)
-                            
-                            output.seek(0)
+                            try:
+                                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                                    summary_df.to_excel(writer, sheet_name='Özet', index=False)
+                                    report_data.to_excel(writer, sheet_name='Şüpheli_Tesisatlar', index=False)
+                                    building_analysis.to_excel(writer, sheet_name='Bina_Analizi', index=True)
+                                output.seek(0)
+                            except ImportError:
+                                st.warning("⚠️ Excel çıktısı için openpyxl kütüphanesi gerekli. CSV olarak indiriliyor.")
+                                # CSV alternatifi
+                                csv_output = report_data.to_csv(index=False)
+                                st.download_button(
+                                    label="📥 CSV Raporu İndir",
+                                    data=csv_output,
+                                    file_name=f"dogalgaz_anomali_raporu_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                    mime="text/csv"
+                                )
+                                output = None
                         
-                        st.download_button(
-                            label="📥 Excel Raporu İndir",
-                            data=output.getvalue(),
-                            file_name=f"dogalgaz_anomali_raporu_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
+                        if output:
+                            st.download_button(
+                                label="📥 Excel Raporu İndir",
+                                data=output.getvalue(),
+                                file_name=f"dogalgaz_anomali_raporu_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
                         
                         # Detaylı analiz
                         st.header("🔍 Detaylı Analiz")
