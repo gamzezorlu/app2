@@ -1,21 +1,19 @@
-# Genel istatistikler
-                st.header("📈 Genel İstatistikler")import streamlit as st
+import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime
-import io
+from plotly.subplots import make_subplots
 import warnings
 warnings.filterwarnings('ignore')
 
-# Sayfa yapılandırması
 st.set_page_config(
-    page_title="Doğalgaz Kaçak Tespit Sistemi",
-    page_icon="🔍",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="Doğalgaz Anomali Tespit Sistemi",
+    page_icon="🔥",
+    layout="wide"
 )
+
+st.header("📈 Genel İstatistikler")
 
 # CSS ile görsel iyileştirmeler
 st.markdown("""
